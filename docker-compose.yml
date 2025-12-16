@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: n8n_postgres
+    restart: always
+    environment:
+      # POSTGRES INTERNAL CONFIGURATION
+      POSTGRES_USER: n8n_user
+      POSTGRES_PASSWORD: macv140191
+      POSTGRES_DB: n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # CRITICAL: Persist database data
+    ports:
+      - "5432:5432" # Optional: For PGAdmin or troubleshooting
+    networks:
+      - n8n_network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_app
+    restart: always
+    environment:
+      # N8N-TO-DATABASE CONNECTION
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n_user
+      DB_POSTGRESDB_PASSWORD: macv140191
+
+      # SECURITY & BEST PRACTICES
+      N8N_ENCRYPTION_KEY: "1234567890abcdef1234567890abcdef"
+      GENERIC_TIMEZONE: UTC
+      # Corrected to match the host port 5678
+      WEBHOOK_URL: http://localhost:5678/ 
+
+      # UI/LOGIN AUTHENTICATION
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      # CRITICAL: UNIQUE password for UI login, different from DB password
+      N8N_BASIC_AUTH_PASSWORD: macv140191 
+
+    ports:
+      - "5678:5678" # Map container port 5678 to host port 5678 for browser access
+    volumes:
+      - n8n_local_data:/home/node/.n8n # CRITICAL: Persist workflows and credentials
+    depends_on:
+      - postgres
+    networks:
+      - n8n_network
+
+# Named volumes for data persistence
+volumes:
+  postgres_data:
+  n8n_local_data:
+
+# Custom network for container communication
+networks:
+  n8n_network:
